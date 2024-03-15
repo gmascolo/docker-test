@@ -1,0 +1,18 @@
+# Utilizamos una imagen de Python oficial como base
+FROM python:3.9-slim
+
+# Establecemos el directorio de trabajo en /app
+WORKDIR /app
+
+# Copiamos los archivos necesarios al contenedor
+COPY src/requirements.txt .
+COPY src/main.py .
+
+# Instalamos las dependencias del proyecto
+RUN pip install --no-cache-dir -r requirements.txt 
+
+# Exponemos el puerto 8000 para que la aplicación FastAPI pueda ser accedida
+EXPOSE 8000
+
+# Ejecutamos la aplicación FastAPI cuando el contenedor se inicia
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8000", "main:app"]
