@@ -1,0 +1,48 @@
+pipeline {
+    agent any
+    
+    stages {
+        stage('Preparation') {
+            steps {
+                script {
+                    // Load environment variables from file
+                    def props = readProperties file: 'env.properties'
+                    env.IMAGE_NAME = props['IMAGE_NAME']
+                    env.IMAGE_TAG = props['IMAGE_TAG']
+                }
+            }
+        }
+        stage('Clonar repositorio') {
+            steps {
+                script {
+                    checkout([$class: 'GitSCM', 
+                              branches: [[name: "main"]], 
+                              doGenerateSubmoduleConfigurations: false, 
+                              extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: '']], 
+                              submoduleCfg: [], 
+                              userRemoteConfigs: [[credentialsId: "jenkins_github_ssh_key", url: "git@github.com:gmascolo/docker-test.git"]]])
+                }
+            }
+        }
+        
+        stage('Construir imagen Docker') {
+            steps {
+                dir('image-api') {
+                  script {
+                    docker.build("${env.IMAGE_NAME}:${env.IMAGE_TAG}")
+                  }
+                }
+            }
+        }
+        
+        stage('Publicar imagen Docker') {
+            steps {
+                script {
+                    docker.withRegistry('https://core.harbor.domain', 'jenkins_harbor') {
+                        docker.image("${env.IMAGE_NAME}:${env.IMAGE_TAG}").push()
+                    }
+                }
+            }
+        }
+    }
+}
